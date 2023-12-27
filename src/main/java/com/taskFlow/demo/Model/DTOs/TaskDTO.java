@@ -5,16 +5,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class TaskDTO {
@@ -23,6 +22,6 @@ public class TaskDTO {
     private Date Assignement_day;
     private LocalTime start_time;
     private LocalTime end_time;
+    private Date deadline;
     private List<Tag> tags;
-
 }

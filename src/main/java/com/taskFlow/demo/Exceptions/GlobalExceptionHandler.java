@@ -12,4 +12,15 @@ public class GlobalExceptionHandler {
     {
         return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(DateException.class)
+    public  ResponseEntity<String>  handeDateisBeforException(final DateException e)
+    {
+        return  new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_ACCEPTABLE);
+    }
+    @ExceptionHandler(UserNotFoundException.class)
+     public  ResponseEntity<String> handleUserNotFoundException(final  UserNotFoundException e)
+    {
+        return  new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_FOUND);
+    }
 }
