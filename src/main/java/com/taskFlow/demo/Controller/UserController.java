@@ -25,7 +25,11 @@ public class UserController {
         UserDTO createdUser = userService.createUser(userDTO);
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
-
+    @PostMapping("/register")
+    public ResponseEntity<UserDTO> registerUser(@RequestBody UserDTO userDTO) {
+        UserDTO registeredUser = userService.registerUser(userDTO);
+        return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
+    }
     @GetMapping("/{userId}")
     public ResponseEntity<UserDTO> getUser(@PathVariable Long userId) {
         UserDTO user = userService.getUser(userId);

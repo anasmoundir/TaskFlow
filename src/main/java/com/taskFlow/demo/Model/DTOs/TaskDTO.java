@@ -1,15 +1,15 @@
 package com.taskFlow.demo.Model.DTOs;
 
+import com.taskFlow.demo.Model.Entities.Status;
 import com.taskFlow.demo.Model.Entities.Tag;
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.taskFlow.demo.Model.Entities.User;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 
 @Getter
@@ -23,5 +23,13 @@ public class TaskDTO {
     private LocalTime start_time;
     private LocalTime end_time;
     private Date deadline;
+    private Status status;
+    private User createdBy;
+    private User assignedTo;
     private List<Tag> tags;
+
+
+
+
+
 }

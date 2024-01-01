@@ -14,7 +14,7 @@ import java.util.Set;
 @Table(name = "Tags")
 public class Tag {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;
 

@@ -20,7 +20,7 @@ import java.util.Set;
 @Table(name = "Tasks")
 public class Task {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;
 

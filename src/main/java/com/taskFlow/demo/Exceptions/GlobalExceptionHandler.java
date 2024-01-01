@@ -12,6 +12,12 @@ public class GlobalExceptionHandler {
     {
         return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
+    @ExceptionHandler(UserValidationException.class)
+    public ResponseEntity<String> handleUserALreadyExist(final UserValidationException e)
+    {
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_ACCEPTABLE);
+    }
+
 
     @ExceptionHandler(DateException.class)
     public  ResponseEntity<String>  handeDateisBeforException(final DateException e)
