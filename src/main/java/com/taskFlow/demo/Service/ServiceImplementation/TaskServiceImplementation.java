@@ -15,7 +15,9 @@ import com.taskFlow.demo.Service.TaskService;
 import com.taskFlow.demo.UserManager.TokenManager;
 import com.taskFlow.demo.mapper.TaskMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import java.time.*;
@@ -115,6 +117,41 @@ public class TaskServiceImplementation implements TaskService {
                 .map(taskMapper::toDto)
                 .collect(Collectors.toList());
     }
+    @Override
+    public TaskDTO replaceTask(Long initialTaskId, TaskDTO newTaskDto, User manager) {
+        Task initialTask = taskRepo.findById(initialTaskId)
+                .orElseThrow(() -> new TaskNotFoundException("Task not found"));
+
+        validateTaskReplacement(manager, initialTask);
+
+
+        validateTaskConstraints(newTaskDto);
+
+        Task newTask = taskMapper.toEntity(newTaskDto);
+        newTask.setCreatedBy(manager);
+        processTags(newTask, newTaskDto.getTags());
+
+        newTask = taskRepo.save(newTask);
+
+
+        initialTask.setReplacedBy(newTask);
+        taskRepo.save(initialTask);
+
+        tokenManager.validateReplacements(manager);
+
+        return taskMapper.toDto(newTask);
+    }
+
+    private void validateTaskReplacement(User manager, Task initialTask) {
+        if (!initialTask.getStatus().equals(Status.Doing)) {
+            throw new TaskValidationException("Only open tasks can be replaced");
+        }
+
+        if (!initialTask.getCreatedBy().equals(manager)) {
+            throw new TaskValidationException("Only the creator of the task can replace it");
+        }
+    }
+
 
     private void validateTaskConstraints(TaskDTO taskDto) {
         validateStartTime(taskDto.getAssignement_day(), taskDto.getStart_time());
@@ -195,4 +232,35 @@ public class TaskServiceImplementation implements TaskService {
         }
         task.setTags(new HashSet<>(existingTags));
     }
+    @Scheduled(cron = "0 0 0 * * *")
+    @Transactional
+    public void processTasks() {
+
+        grantDoubleModificationTokensIfNoResponse();
+        markTasksAsNotDone();
+    }
+
+
+    @Override
+    @Transactional
+    public void grantDoubleModificationTokensIfNoResponse() {
+        LocalDateTime twelveHoursAgo = LocalDateTime.now().minusHours(12);
+        List<Task> pendingChangeRequests = taskRepo.findPendingChangeRequestsOlderThan(twelveHoursAgo);
+
+        for (Task task : pendingChangeRequests) {
+            User user = task.getCreatedBy();
+            tokenManager.grantDoubleModificationTokens(user);
+        }
+    }
+
+    @Transactional
+    public void markTasksAsNotDone() {
+        LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
+        List<Task> overdueTasks = taskRepo.findOverdueTasks(twentyFourHoursAgo);
+
+        for (Task task : overdueTasks) {
+            task.setStatus(Status.Expired);
+            taskRepo.save(task);
+        }
+}
 }

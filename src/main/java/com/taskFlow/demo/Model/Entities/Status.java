@@ -4,5 +4,6 @@ public enum Status {
     Todo,
     Doing,
     Expired,
+    PENDING_CHANGE,
     Done
 }

@@ -38,6 +38,9 @@ public class Task {
 
     @Column(name = "deadline")
     private Date deadline;
+    @ManyToOne
+    @JoinColumn(name = "replaced_by_id")
+    private Task replacedBy;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
