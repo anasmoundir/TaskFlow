@@ -6,9 +6,9 @@ import lombok.Setter;
 
 import java.util.Set;
 
-@Entity
 @Getter
 @Setter
+@Entity
 @Table(name = "users")
 public class User {
     @Id
@@ -16,17 +16,26 @@ public class User {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "username")
+    private String username;
+
     @Column(name = "email")
     private String email;
 
     @Column(name = "password")
     private String password;
 
+    @OneToMany(mappedBy = "assignedTo")
+    private Set<Task> assignedTasks;
+
     @ManyToMany
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
     private Set<Role> roles;
 }
-    
