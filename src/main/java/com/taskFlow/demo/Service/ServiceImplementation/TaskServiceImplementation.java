@@ -2,14 +2,17 @@ package com.taskFlow.demo.Service.ServiceImplementation;
 import com.taskFlow.demo.Exceptions.DateException;
 import com.taskFlow.demo.Exceptions.TaskNotFoundException;
 import com.taskFlow.demo.Exceptions.TaskValidationException;
+import com.taskFlow.demo.Exceptions.UserNotFoundException;
 import com.taskFlow.demo.Model.DTOs.TaskDTO;
 import com.taskFlow.demo.Model.Entities.Status;
 import com.taskFlow.demo.Model.Entities.Tag;
 import com.taskFlow.demo.Model.Entities.Task;
+import com.taskFlow.demo.Model.Entities.User;
 import com.taskFlow.demo.Repository.TagRepo;
 import com.taskFlow.demo.Repository.TaskRepo;
 import com.taskFlow.demo.Repository.UserRepo;
 import com.taskFlow.demo.Service.TaskService;
+import com.taskFlow.demo.UserManager.TokenManager;
 import com.taskFlow.demo.mapper.TaskMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,21 +29,22 @@ public class TaskServiceImplementation implements TaskService {
     private final TaskMapper taskMapper;
     private final UserRepo userRepo;
     private final TagRepo tagRepo;
+    private  final TokenManager tokenManager;
 
     @Autowired
-    public TaskServiceImplementation(UserRepo userRepo, TaskRepo taskRepo, TaskMapper taskMapper, TagRepo tagRepo) {
+    public TaskServiceImplementation(UserRepo userRepo, TaskRepo taskRepo, TaskMapper taskMapper, TagRepo tagRepo,TokenManager tokenManager) {
         this.taskRepo = taskRepo;
         this.taskMapper = taskMapper;
         this.userRepo = userRepo;
         this.tagRepo = tagRepo;
+        this.tokenManager=tokenManager;
     }
 
     @Override
     public TaskDTO createTask(TaskDTO taskDto) {
         validateTaskConstraints(taskDto);
+        tokenManager.validateReassignments(taskDto.getCreatedBy());
         Task task = taskMapper.toEntity(taskDto);
-
-
         task.setAssignementDay(taskDto.getAssignement_day());
         task.setStartTime(taskDto.getStart_time());
         task.setEndTime(taskDto.getEnd_time());
@@ -59,7 +63,8 @@ public class TaskServiceImplementation implements TaskService {
     @Override
     public TaskDTO updateTask(TaskDTO taskDto) {
         validateTaskConstraints(taskDto);
-
+        tokenManager.validateReassignments(taskDto.getCreatedBy());
+        tokenManager.validateDeletions(taskDto.getCreatedBy());
         Task existingTask = taskRepo.findById(taskDto.getId())
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
 
@@ -84,9 +89,12 @@ public class TaskServiceImplementation implements TaskService {
     }
 
     @Override
-    public void deleteTask(Long taskId) {
+    public void deleteTask(Long taskId, Long id) {
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
+        User loggedInUser =userRepo.findById(id).orElseThrow(()-> new UserNotFoundException("the user not found"));
+        tokenManager.validateDeletions(loggedInUser);
+
         taskRepo.delete(task);
     }
 
@@ -94,6 +102,8 @@ public class TaskServiceImplementation implements TaskService {
     public TaskDTO getTask(Long taskId) {
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
+
+
 
         return taskMapper.toDto(task);
     }
@@ -110,6 +120,9 @@ public class TaskServiceImplementation implements TaskService {
         validateStartTime(taskDto.getAssignement_day(), taskDto.getStart_time());
         ValidateTagNumber(taskDto);
         validateDeadline(taskDto);
+        if (taskDto.getAssignedTo() != null && !taskDto.getAssignedTo().equals(taskDto.getCreatedBy())) {
+            throw new TaskValidationException("A user can assign tasks only to themselves");
+        }
     }
 
 
@@ -135,7 +148,6 @@ public class TaskServiceImplementation implements TaskService {
         if (taskDto.getAssignement_day() == null || taskDto.getDeadline() == null) {
             throw new TaskValidationException("Assignment day and deadline are required");
         }
-
         Instant assignmentInstant = taskDto.getAssignement_day().toInstant();
         Instant deadlineInstant = taskDto.getDeadline().toInstant();
 
@@ -151,7 +163,19 @@ public class TaskServiceImplementation implements TaskService {
 
     private void validateUpdateTask(Task task) {
         if (task.getStatus() == Status.Done) {
-            throw new IllegalStateException("Cannot update a completed task");
+            if (task.getDeadline() != null) {
+                LocalDateTime deadlineDateTime = LocalDateTime.ofInstant(
+                        task.getDeadline().toInstant(),
+                        ZoneId.systemDefault()
+                );
+                if (LocalDateTime.now().isAfter(deadlineDateTime)) {
+                    throw new TaskValidationException("Task cannot be marked as completed after the deadline");
+                }
+            } else {
+                throw new TaskValidationException("Task deadline is missing");
+            }
+        } else {
+            throw new IllegalStateException("Cannot update a task that is not marked as completed");
         }
     }
 
