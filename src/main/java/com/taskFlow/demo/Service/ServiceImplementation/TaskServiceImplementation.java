@@ -54,11 +54,8 @@ public class TaskServiceImplementation implements TaskService {
         task.setStatus(taskDto.getStatus());
         task.setCreatedBy(taskDto.getCreatedBy());
         task.setAssignedTo(taskDto.getAssignedTo());
-
         processTags(task, taskDto.getTags());
-
         task = taskRepo.save(task);
-
         return taskMapper.toDto(task);
     }
 
@@ -71,10 +68,8 @@ public class TaskServiceImplementation implements TaskService {
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
 
         validateUpdateTask(existingTask);
-
         Task updatedTask = taskMapper.toEntity(taskDto);
         updatedTask.setId(existingTask.getId());
-
         updatedTask.setAssignementDay(taskDto.getAssignement_day());
         updatedTask.setStartTime(taskDto.getStart_time());
         updatedTask.setEndTime(taskDto.getEnd_time());
@@ -82,11 +77,8 @@ public class TaskServiceImplementation implements TaskService {
         updatedTask.setStatus(taskDto.getStatus());
         updatedTask.setCreatedBy(taskDto.getCreatedBy());
         updatedTask.setAssignedTo(taskDto.getAssignedTo());
-
         processTags(updatedTask, taskDto.getTags());
-
         updatedTask = taskRepo.save(updatedTask);
-
         return taskMapper.toDto(updatedTask);
     }
 
@@ -104,9 +96,6 @@ public class TaskServiceImplementation implements TaskService {
     public TaskDTO getTask(Long taskId) {
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
-
-
-
         return taskMapper.toDto(task);
     }
 
@@ -123,20 +112,13 @@ public class TaskServiceImplementation implements TaskService {
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
 
         validateTaskReplacement(manager, initialTask);
-
-
         validateTaskConstraints(newTaskDto);
-
         Task newTask = taskMapper.toEntity(newTaskDto);
         newTask.setCreatedBy(manager);
         processTags(newTask, newTaskDto.getTags());
-
         newTask = taskRepo.save(newTask);
-
-
         initialTask.setReplacedBy(newTask);
         taskRepo.save(initialTask);
-
         tokenManager.validateReplacements(manager);
 
         return taskMapper.toDto(newTask);

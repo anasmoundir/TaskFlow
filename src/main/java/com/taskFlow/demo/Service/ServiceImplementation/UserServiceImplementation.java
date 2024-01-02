@@ -41,13 +41,11 @@ public class UserServiceImplementation implements UserService {
         if (userExists) {
             throw new UserValidationException("Username already exists");
         }
-
         User user = userMapper.toEntity(userDTO);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         Set<Role> roles = new HashSet<>();
         roles.add(roleRepo.findByRoleName("USER"));
         user.setRoles(roles);
-
         user = userRepo.save(user);
         return userMapper.toDto(user);
     }
