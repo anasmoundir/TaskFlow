@@ -3,6 +3,8 @@ import com.taskFlow.demo.Exceptions.DateException;
 import com.taskFlow.demo.Exceptions.TaskNotFoundException;
 import com.taskFlow.demo.Exceptions.TaskValidationException;
 import com.taskFlow.demo.Exceptions.UserNotFoundException;
+import com.taskFlow.demo.Model.DTOs.Response.TaskResponseDTO;
+import com.taskFlow.demo.Model.DTOs.TagDTO;
 import com.taskFlow.demo.Model.DTOs.TaskDTO;
 import com.taskFlow.demo.Model.Entities.Status;
 import com.taskFlow.demo.Model.Entities.Tag;
@@ -14,14 +16,17 @@ import com.taskFlow.demo.Repository.UserRepo;
 import com.taskFlow.demo.Service.TaskService;
 import com.taskFlow.demo.UserManager.TokenManager;
 import com.taskFlow.demo.mapper.TaskMapper;
+import com.taskFlow.demo.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import javax.validation.constraints.NotNull;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,29 +37,26 @@ public class TaskServiceImplementation implements TaskService {
     private final UserRepo userRepo;
     private final TagRepo tagRepo;
     private  final TokenManager tokenManager;
+    private final UserMapper userMapper;
 
     @Autowired
-    public TaskServiceImplementation(UserRepo userRepo, TaskRepo taskRepo, TaskMapper taskMapper, TagRepo tagRepo,TokenManager tokenManager) {
+    public TaskServiceImplementation(UserRepo userRepo, TaskRepo taskRepo, TaskMapper taskMapper, TagRepo tagRepo,TokenManager tokenManager,
+                                     UserMapper userMapper) {
         this.taskRepo = taskRepo;
         this.taskMapper = taskMapper;
         this.userRepo = userRepo;
         this.tagRepo = tagRepo;
         this.tokenManager=tokenManager;
+        this.userMapper = userMapper;
     }
 
     @Override
     public TaskDTO createTask(TaskDTO taskDto) {
         validateTaskConstraints(taskDto);
         tokenManager.validateReassignments(taskDto.getCreatedBy());
-        Task task = taskMapper.toEntity(taskDto);
-        task.setAssignementDay(taskDto.getAssignement_day());
-        task.setStartTime(taskDto.getStart_time());
-        task.setEndTime(taskDto.getEnd_time());
-        task.setDeadline(taskDto.getDeadline());
-        task.setStatus(taskDto.getStatus());
-        task.setCreatedBy(taskDto.getCreatedBy());
-        task.setAssignedTo(taskDto.getAssignedTo());
-        processTags(task, taskDto.getTags());
+        System.out.println(taskDto.getAssignmentDay());
+        Task task =taskMapper.toEntity(taskDto);
+        System.out.println(task.getAssignmentDay());
         task = taskRepo.save(task);
         return taskMapper.toDto(task);
     }
@@ -63,24 +65,20 @@ public class TaskServiceImplementation implements TaskService {
     public TaskDTO updateTask(TaskDTO taskDto) {
         validateTaskConstraints(taskDto);
         tokenManager.validateReassignments(taskDto.getCreatedBy());
-        tokenManager.validateDeletions(taskDto.getCreatedBy());
+        tokenManager.validateDeletions(userMapper.toEntity(taskDto.getCreatedBy()));
+
         Task existingTask = taskRepo.findById(taskDto.getId())
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
 
         validateUpdateTask(existingTask);
-        Task updatedTask = taskMapper.toEntity(taskDto);
-        updatedTask.setId(existingTask.getId());
-        updatedTask.setAssignementDay(taskDto.getAssignement_day());
-        updatedTask.setStartTime(taskDto.getStart_time());
-        updatedTask.setEndTime(taskDto.getEnd_time());
-        updatedTask.setDeadline(taskDto.getDeadline());
-        updatedTask.setStatus(taskDto.getStatus());
-        updatedTask.setCreatedBy(taskDto.getCreatedBy());
-        updatedTask.setAssignedTo(taskDto.getAssignedTo());
-        processTags(updatedTask, taskDto.getTags());
-        updatedTask = taskRepo.save(updatedTask);
-        return taskMapper.toDto(updatedTask);
+
+        taskMapper.updateTaskFromDto(taskDto, existingTask);
+
+        existingTask = taskRepo.save(existingTask);
+
+        return taskMapper.toDto(existingTask);
     }
+
 
     @Override
     public void deleteTask(Long taskId, Long id) {
@@ -93,12 +91,11 @@ public class TaskServiceImplementation implements TaskService {
     }
 
     @Override
-    public TaskDTO getTask(Long taskId) {
+    public TaskResponseDTO getTask(Long taskId) {
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new TaskNotFoundException("Task not found"));
-        return taskMapper.toDto(task);
+        return taskMapper.toResponseDto(taskMapper.toDto(task));
     }
-
     @Override
     public List<TaskDTO> getAllTasks() {
         List<Task> tasks = taskRepo.findAll();
@@ -120,7 +117,6 @@ public class TaskServiceImplementation implements TaskService {
         initialTask.setReplacedBy(newTask);
         taskRepo.save(initialTask);
         tokenManager.validateReplacements(manager);
-
         return taskMapper.toDto(newTask);
     }
 
@@ -136,7 +132,7 @@ public class TaskServiceImplementation implements TaskService {
 
 
     private void validateTaskConstraints(TaskDTO taskDto) {
-        validateStartTime(taskDto.getAssignement_day(), taskDto.getStart_time());
+        validateStartTime(taskDto.getAssignmentDay(), taskDto.getStartTime());
         ValidateTagNumber(taskDto);
         validateDeadline(taskDto);
         if (taskDto.getAssignedTo() != null && !taskDto.getAssignedTo().equals(taskDto.getCreatedBy())) {
@@ -145,17 +141,16 @@ public class TaskServiceImplementation implements TaskService {
     }
 
 
-
     private void ValidateTagNumber(TaskDTO taskDto) {
-        List<Tag> tags = taskDto.getTags();
+        List<TagDTO> tags = taskDto.getTags();
         if (tags == null || tags.size() < 2) {
             throw new TaskValidationException("A task must have at least two tags");
         }
     }
 
-    private void validateStartTime(Date assignmentDay, LocalTime startTime) {
-        Instant instant = assignmentDay.toInstant();
-        LocalDateTime assignmentDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
+    private void validateStartTime(@NotNull(message = "Assignment day cannot be null") Date assignmentDay, LocalTime startTime) {
+        Instant assignmentInstant = assignmentDay.toInstant();
+        LocalDateTime assignmentDateTime = LocalDateTime.ofInstant(assignmentInstant, ZoneId.systemDefault())
                 .with(startTime);
 
         if (assignmentDateTime.isBefore(LocalDateTime.now())) {
@@ -164,14 +159,12 @@ public class TaskServiceImplementation implements TaskService {
     }
 
     private void validateDeadline(TaskDTO taskDto) {
-        if (taskDto.getAssignement_day() == null || taskDto.getDeadline() == null) {
+        if (taskDto.getAssignmentDay() == null || taskDto.getDeadline() == null) {
             throw new TaskValidationException("Assignment day and deadline are required");
         }
-        Instant assignmentInstant = taskDto.getAssignement_day().toInstant();
-        Instant deadlineInstant = taskDto.getDeadline().toInstant();
 
-        LocalDate assignmentDate = LocalDateTime.ofInstant(assignmentInstant, ZoneId.systemDefault()).toLocalDate();
-        LocalDate deadlineDate = LocalDateTime.ofInstant(deadlineInstant, ZoneId.systemDefault()).toLocalDate();
+        LocalDate assignmentDate = taskDto.getAssignmentDay().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate deadlineDate = taskDto.getDeadline().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
         long daysDifference = ChronoUnit.DAYS.between(assignmentDate, deadlineDate);
 
@@ -198,9 +191,9 @@ public class TaskServiceImplementation implements TaskService {
         }
     }
 
-    private void processTags(Task task, List<Tag> taskTags) {
+    private void processTags(Task task, List<TagDTO> taskTags) {
         List<Tag> existingTags = new ArrayList<>();
-        for (Tag tag : taskTags) {
+        for (TagDTO tag : taskTags) {
             Optional<Tag> existingTag = tagRepo.findById(tag.getId());
             if (existingTag.isPresent()) {
                 existingTags.add(existingTag.get());
@@ -245,4 +238,7 @@ public class TaskServiceImplementation implements TaskService {
             taskRepo.save(task);
         }
 }
+
+
+
 }

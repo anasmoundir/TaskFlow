@@ -1,7 +1,9 @@
 package com.taskFlow.demo.Controller;
 
+import com.taskFlow.demo.Model.DTOs.Response.UserResponseDTO;
 import com.taskFlow.demo.Model.DTOs.UserDTO;
 import com.taskFlow.demo.Service.ServiceImplementation.UserServiceImplementation;
+import com.taskFlow.demo.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +16,12 @@ import java.util.List;
 public class UserController {
 
     private final UserServiceImplementation userService;
+    private  final UserMapper userMapper;
 
     @Autowired
-    public UserController(UserServiceImplementation userService) {
+    public UserController(UserServiceImplementation userService,UserMapper userMapper) {
         this.userService = userService;
+        this.userMapper = userMapper;
     }
 
     @PostMapping
@@ -31,10 +35,12 @@ public class UserController {
         return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
     }
     @GetMapping("/{userId}")
-    public ResponseEntity<UserDTO> getUser(@PathVariable Long userId) {
-        UserDTO user = userService.getUser(userId);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+    public ResponseEntity<UserResponseDTO> getUser(@PathVariable Long userId) {
+        UserDTO userDTO = userService.getUser(userId);
+        UserResponseDTO userResponseDTO = userMapper.toResponseDto(userDTO);
+        return new ResponseEntity<>(userResponseDTO, HttpStatus.OK);
     }
+
 
     @GetMapping
     public ResponseEntity<List<UserDTO>> getAllUsers() {

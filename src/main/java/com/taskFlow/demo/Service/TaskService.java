@@ -1,5 +1,6 @@
 package com.taskFlow.demo.Service;
 
+import com.taskFlow.demo.Model.DTOs.Response.TaskResponseDTO;
 import com.taskFlow.demo.Model.DTOs.TaskDTO;
 import com.taskFlow.demo.Model.Entities.User;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,7 @@ public interface TaskService {
 
     void deleteTask(Long taskId, Long id);
 
-    TaskDTO getTask(Long taskId);
+    TaskResponseDTO getTask(Long taskId);
 
     List<TaskDTO> getAllTasks();
 

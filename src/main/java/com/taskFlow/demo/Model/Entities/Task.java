@@ -1,7 +1,9 @@
 package com.taskFlow.demo.Model.Entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CollectionId;
 import org.springframework.core.metrics.StartupStep;
@@ -17,6 +19,8 @@ import java.util.Set;
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "Tasks")
 public class Task {
     @Id
@@ -28,7 +32,7 @@ public class Task {
     private String body;
 
     @Column(name = "assignement_day")
-    private Date assignementDay;
+    private Date assignmentDay;
 
     @Column(name = "start_time")
     private LocalTime startTime;
