@@ -2,6 +2,7 @@ package com.taskFlow.demo.Service;
 
 import com.taskFlow.demo.Model.DTOs.Response.TaskResponseDTO;
 import com.taskFlow.demo.Model.DTOs.TaskDTO;
+import com.taskFlow.demo.Model.Entities.Task;
 import com.taskFlow.demo.Model.Entities.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,8 @@ public interface TaskService {
     List<TaskDTO> getAllTasks();
 
     TaskDTO replaceTask(Long initialTaskId, TaskDTO newTaskDto, User manager);
+
+   // List<Task> getManagerOverview(Long managerId, String tag, String timeframe);
 
     @Transactional
     void grantDoubleModificationTokensIfNoResponse();

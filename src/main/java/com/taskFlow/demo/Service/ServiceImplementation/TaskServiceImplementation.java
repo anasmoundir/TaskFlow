@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.validation.constraints.NotNull;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.Temporal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -207,6 +206,17 @@ public class TaskServiceImplementation implements TaskService {
         }
         task.setTags(new HashSet<>(existingTags));
     }
+//    @Override
+//    public List<TaskDTO> getManagerOverview(Long managerId, String tag, String timeframe) {
+//        List<Task> tasks = taskRepo.getTasksForManagerOverview(managerId, tag, timeframe, LocalDate.now(), LocalDate.now());
+//
+//        // Convert Task entities to TaskDTOs using your mapper
+//        List<TaskDTO> taskDTOs = tasks.stream()
+//                .map(taskMapper::toDto)
+//                .collect(Collectors.toList());
+//
+//        return taskDTOs;
+//    }
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void processTasks() {
